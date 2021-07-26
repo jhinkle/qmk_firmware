@@ -196,10 +196,11 @@ ifeq ($(strip $(RGBLIGHT_ENABLE)), yes)
     ifeq ($(filter $(RGBLIGHT_DRIVER),$(VALID_RGBLIGHT_TYPES)),)
         $(error RGBLIGHT_DRIVER="$(RGBLIGHT_DRIVER)" is not a valid RGB type)
     else
-        POST_CONFIG_H += $(QUANTUM_DIR)/rgblight_post_config.h
+        COMMON_VPATH += $(QUANTUM_DIR)/rgblight
+        POST_CONFIG_H += $(QUANTUM_DIR)/rgblight/rgblight_post_config.h
         OPT_DEFS += -DRGBLIGHT_ENABLE
         SRC += $(QUANTUM_DIR)/color.c
-        SRC += $(QUANTUM_DIR)/rgblight.c
+        SRC += $(QUANTUM_DIR)/rgblight/rgblight.c
         CIE1931_CURVE := yes
         RGB_KEYCODES_ENABLE := yes
     endif
@@ -233,9 +234,10 @@ endif
     COMMON_VPATH += $(QUANTUM_DIR)/led_matrix
     COMMON_VPATH += $(QUANTUM_DIR)/led_matrix/animations
     COMMON_VPATH += $(QUANTUM_DIR)/led_matrix/animations/runners
-    SRC += process_backlight.c
-    SRC += led_matrix.c
-    SRC += led_matrix_drivers.c
+    SRC += $(QUANTUM_DIR)/process_keycode/process_backlight.c
+    SRC += $(QUANTUM_DIR)/led_matrix/led_matrix.c
+    SRC += $(QUANTUM_DIR)/led_matrix/led_matrix_drivers.c
+    SRC += $(LIB_PATH)/lib8tion/lib8tion.c
     CIE1931_CURVE := yes
 
     ifeq ($(strip $(LED_MATRIX_DRIVER)), IS31FL3731)
@@ -261,9 +263,10 @@ endif
     COMMON_VPATH += $(QUANTUM_DIR)/rgb_matrix
     COMMON_VPATH += $(QUANTUM_DIR)/rgb_matrix/animations
     COMMON_VPATH += $(QUANTUM_DIR)/rgb_matrix/animations/runners
-    SRC += color.c
-    SRC += rgb_matrix.c
-    SRC += rgb_matrix_drivers.c
+    SRC += $(QUANTUM_DIR)/color.c
+    SRC += $(QUANTUM_DIR)/rgb_matrix/rgb_matrix.c
+    SRC += $(QUANTUM_DIR)/rgb_matrix/rgb_matrix_drivers.c
+    SRC += $(LIB_PATH)/lib8tion/lib8tion.c
     CIE1931_CURVE := yes
     RGB_KEYCODES_ENABLE := yes
 
@@ -329,6 +332,11 @@ ifeq ($(strip $(PRINTING_ENABLE)), yes)
     OPT_DEFS += -DPRINTING_ENABLE
     SRC += $(QUANTUM_DIR)/process_keycode/process_printer.c
     SRC += $(TMK_DIR)/protocol/serial_uart.c
+endif
+
+ifeq ($(strip $(KEY_OVERRIDE_ENABLE)), yes)
+    OPT_DEFS += -DKEY_OVERRIDE_ENABLE
+    SRC += $(QUANTUM_DIR)/process_keycode/process_key_override.c
 endif
 
 ifeq ($(strip $(SERIAL_LINK_ENABLE)), yes)
@@ -507,11 +515,7 @@ ifneq ($(strip $(CUSTOM_MATRIX)), yes)
     # if 'lite' then skip the actual matrix implementation
     ifneq ($(strip $(CUSTOM_MATRIX)), lite)
         # Include the standard or split matrix code if needed
-        ifeq ($(strip $(SPLIT_KEYBOARD)), yes)
-            QUANTUM_SRC += $(QUANTUM_DIR)/split_common/matrix.c
-        else
-            QUANTUM_SRC += $(QUANTUM_DIR)/matrix.c
-        endif
+        QUANTUM_SRC += $(QUANTUM_DIR)/matrix.c
     endif
 endif
 
@@ -536,6 +540,7 @@ endif
 ifeq ($(strip $(SPLIT_KEYBOARD)), yes)
     POST_CONFIG_H += $(QUANTUM_DIR)/split_common/post_config.h
     OPT_DEFS += -DSPLIT_KEYBOARD
+    CRC_ENABLE := yes
 
     # Include files used by all split keyboards
     QUANTUM_SRC += $(QUANTUM_DIR)/split_common/split_util.c
@@ -569,14 +574,15 @@ endif
 
 ifeq ($(strip $(CRC_ENABLE)), yes)
     OPT_DEFS += -DCRC_ENABLE
-    QUANTUM_LIB_SRC += crc.c
+    SRC += crc.c
 endif
 
 HAPTIC_ENABLE ?= no
 ifneq ($(strip $(HAPTIC_ENABLE)),no)
     COMMON_VPATH += $(DRIVER_PATH)/haptic
-    SRC += haptic.c
     OPT_DEFS += -DHAPTIC_ENABLE
+    SRC += $(QUANTUM_DIR)/haptic.c
+    SRC += $(QUANTUM_DIR)/process_keycode/process_haptic.c
 endif
 
 ifneq ($(filter DRV2605L, $(HAPTIC_ENABLE)), )
